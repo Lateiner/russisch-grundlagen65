@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Satz-Puzzle: ТАК vs. ТАКОЙ</title>
+    <!-- Polyfill für Drag & Drop (hier für Click-Interaktion optimiert) -->
+    <script src="https://cdn.jsdelivr.net/npm/drag-drop-touch@1.3.1/DragDropTouch.js"></script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: var(--primary-color);
+        }
+
+        .instructions {
+            background: #e1f5fe;
+            padding: 15px;
+            border-left: 5px solid var(--secondary-color);
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+
+        .exercise-card {
+            background: #fdfdfd;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .sentence-index {
+            font-weight: bold;
+            color: var(--secondary-color);
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        /* Bereich für den gebauten Satz */
+        .build-area {
+            min-height: 50px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            background-color: #fff;
+            transition: all 0.3s ease;
+        }
+
+        .build-area.correct {
+            border-color: var(--success-color);
+            background-color: #d4edda;
+        }
+
+        .build-area.wrong {
+            border-color: var(--error-color);
+            background-color: #f8d7da;
+        }
+
+        /* Wort-Chips */
+        .word-pool {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .word-chip {
+            background-color: #fff;
+            border: 1px solid var(--secondary-color);
+            color: var(--primary-color);
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s;
+            font-size: 1rem;
+        }
+
+        .word-chip:hover {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+
+        .word-chip.used {
+            opacity: 0.3;
+            pointer-events: none;
+            background-color: #eee;
+            border-color: #ccc;
+        }
+
+        .word-chip.built {
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+        }
+
+        /* Buttons */
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            transition: opacity 0.2s;
+        }
+
+        .btn-reset { background-color: #95a5a6; }
+        .btn-solve { background-color: var(--primary-color); }
+        button:hover { opacity: 0.9; }
+
+        @media (max-width: 600px) {
+            .container { padding: 15px; }
+            .word-chip { font-size: 0.9rem; padding: 6px 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Russische Grammatik</h1>
+    <h2>Satz-Puzzle: ТАК und ТАКОЙ</h2>
+
+    <div class="instructions">
+        <strong>Anleitung:</strong> Bringen Sie die Wörter in die richtige Reihenfolge. Klicken Sie die Wörter im unteren Bereich nacheinander an.
+        <br>Sobald der Satz vollständig ist, erhalten Sie <strong>sofort Feedback</strong> (Grün = Richtig, Rot = Falsch).
+    </div>
+
+    <div id="puzzle-container">
+        <!-- Puzzles werden per JS geladen -->
+    </div>
+</div>
+
+<script>
+    const puzzles = [
+        { id: 1, words: ["Сегодня", "на", "улице", "ТАК", "холодно."], correct: "Сегодня на улице ТАК холодно." },
+        { id: 2, words: ["Вчера", "был", "ТАКОЙ", "холодный", "день."], correct: "Вчера был ТАКОЙ холодный день." },
+        { id: 3, words: ["Почему", "ты", "ТАК", "красиво", "поёшь?"], correct: "Warum ты ТАК красиво поёшь?" },
+        { id: 4, words: ["Маша", "ТАКАЯ", "красивая", "девушка."], correct: "Маша ТАКАЯ красивая девушка." },
+        { id: 5, words: ["Мы", "никогда", "не", "видели", "ТАКИХ", "собак."], correct: "Мы никогда не видели ТАКИХ собак." },
+        { id: 6, words: ["Этот", "фильм", "ТАК", "интересен."], correct: "Этот фильм ТАК интересен." },
+        { id: 7, words: ["Нам", "ТАК", "весело", "вместе."], correct: "Нам ТАК весело вместе." },
+        { id: 8, words: ["Я", "купил", "ТАКОЕ", "вкусное", "яблоко."], correct: "Я купил ТАКОЕ вкусное яблоко." },
+        { id: 9, words: ["Он", "ТАК", "быстро", "бегает."], correct: "Он ТАК быстро бегает." },
+        { id: 10, words: ["У", "меня", "нет", "ТАКОГО", "компьютера."], correct: "У меня нет ТАКОГО компьютера." },
+        { id: 11, words: ["Дети", "ТАК", "хорошо", "учатся."], correct: "Дети ТАК хорошо учатся." },
+        { id: 12, words: ["Это", "ТАКАЯ", "сложная", "задача."], correct: "Это ТАКАЯ сложная задача." },
+        { id: 13, words: ["Она", "ТАК", "умна", "и", "красива."], correct: "Она ТАК умна и красиva." },
+        { id: 14, words: ["Мы", "говорили", "о", "ТАКОЙ", "ситуации."], correct: "Мы говорили о ТАКОЙ ситуации." },
+        { id: 15, words: ["Вы", "ТАК", "добры", "ко", "мне."], correct: "Вы ТАК добры ко мне." },
+        { id: 16, words: ["Это", "ТАКИЕ", "хорошие", "новости."], correct: "Это ТАКИЕ хорошие новости." },
+        { id: 17, words: ["Я", "вижу", "ТАКУЮ", "красивую", "девушку."], correct: "Я вижу ТАКУЮ красивую девушку." },
+        { id: 18, words: ["Почему", "в", "комнате", "ТАК", "темно?"], correct: "Почему в комнате ТАК темно?" },
+        { id: 19, words: ["Он", "ТАКОЙ", "умный", "мальчик."], correct: "Он ТАКОЙ умный мальчик." },
+        { id: 20, words: ["Учиться", "ТАК", "трудно", "иногда."], correct: "Учиться ТАК трудно иногда." }
+    ];
+
+    // Zustand der Aufgaben
+    let userAnswers = puzzles.map(p => []);
+
+    function renderPuzzles() {
+        const container = document.getElementById('puzzle-container');
+        container.innerHTML = '';
+
+        puzzles.forEach((p, idx) => {
+            const card = document.createElement('div');
+            card.className = 'exercise-card';
+            
+            // Wörter mischen
+            const shuffledWords = [...p.words].sort(() => Math.random() - 0.5);
+
+            card.innerHTML = `
+                <span class="sentence-index">Aufgabe ${idx + 1}</span>
+                <div id="build-area-${p.id}" class="build-area"></div>
+                <div id="pool-${p.id}" class="word-pool">
+                    ${shuffledWords.map((w, wIdx) => `
+                        <div class="word-chip" onclick="addWord(${p.id}, '${w}', this)">${w}</div>
+                    `).join('')}
+                </div>
+                <div class="controls">
+                    <button class="btn-reset" onclick="resetPuzzle(${p.id})">Zurücksetzen</button>
+                    <button class="btn-solve" onclick="solvePuzzle(${p.id})">Lösung</button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    window.addWord = function(puzzleId, word, el) {
+        const buildArea = document.getElementById(`build-area-${puzzleId}`);
+        const puzzle = puzzles.find(p => p.id === puzzleId);
+        
+        // Wort hinzufügen
+        userAnswers[puzzleId-1].push(word);
+        el.classList.add('used');
+
+        // Chip in Build-Area erstellen
+        const chip = document.createElement('div');
+        chip.className = 'word-chip built';
+        chip.innerText = word;
+        buildArea.appendChild(chip);
+
+        // Prüfen, ob Satz fertig ist
+        if (userAnswers[puzzleId-1].length === puzzle.words.length) {
+            checkResult(puzzleId);
+        }
+    };
+
+    function checkResult(puzzleId) {
+        const buildArea = document.getElementById(`build-area-${puzzleId}`);
+        const puzzle = puzzles.find(p => p.id === puzzleId);
+        const userSentence = userAnswers[puzzleId-1].join(' ');
+
+        if (userSentence === puzzle.correct) {
+            buildArea.className = 'build-area correct';
+        } else {
+            buildArea.className = 'build-area wrong';
+        }
+    }
+
+    window.resetPuzzle = function(puzzleId) {
+        const buildArea = document.getElementById(`build-area-${puzzleId}`);
+        const pool = document.getElementById(`pool-${puzzleId}`);
+        
+        userAnswers[puzzleId-1] = [];
+        buildArea.innerHTML = '';
+        buildArea.className = 'build-area';
+        
+        const chips = pool.querySelectorAll('.word-chip');
+        chips.forEach(c => c.classList.remove('used'));
+    };
+
+    window.solvePuzzle = function(puzzleId) {
+        const buildArea = document.getElementById(`build-area-${puzzleId}`);
+        const pool = document.getElementById(`pool-${puzzleId}`);
+        const puzzle = puzzles.find(p => p.id === puzzleId);
+
+        resetPuzzle(puzzleId);
+        
+        puzzle.correct.split(' ').forEach(word => {
+            const chip = document.createElement('div');
+            chip.className = 'word-chip built';
+            chip.innerText = word;
+            buildArea.appendChild(chip);
+        });
+        
+        buildArea.className = 'build-area correct';
+        const poolChips = pool.querySelectorAll('.word-chip');
+        poolChips.forEach(c => c.classList.add('used'));
+    };
+
+    // Initialisierung
+    renderPuzzles();
+</script>
+
+</body>
+</html>
