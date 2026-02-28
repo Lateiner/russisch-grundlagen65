@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vokabel-Lernkartei: Russisch</title>
+    <style>
+        :root {
+            --primary-green: #2e7d32;
+            --light-green: #e8f5e9;
+            --accent-green: #4caf50;
+            --dark-green: #1b5e20;
+            --card-shadow: rgba(0, 0, 0, 0.2);
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-green);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        h1 {
+            color: var(--dark-green);
+            margin-bottom: 10px;
+        }
+
+        .progress {
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            font-weight: bold;
+            color: var(--primary-green);
+        }
+
+        /* Flashcard Styles */
+        .flashcard-container {
+            perspective: 1000px;
+            width: 100%;
+            height: 300px;
+            cursor: pointer;
+            margin-bottom: 30px;
+        }
+
+        .flashcard {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            box-shadow: 0 10px 30px var(--card-shadow);
+            border-radius: 15px;
+        }
+
+        .flashcard.is-flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+            border-radius: 15px;
+            background: white;
+            border: 4px solid var(--primary-green);
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+            background-color: #fff;
+        }
+
+        .card-content {
+            font-size: 2.5rem;
+            font-weight: bold;
+            word-wrap: break-word;
+            max-width: 100%;
+        }
+
+        /* Dynamic Font Sizing Classes */
+        .font-small { font-size: 1.5rem; }
+        .font-medium { font-size: 2rem; }
+
+        .note {
+            margin-top: 15px;
+            font-size: 1rem;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* Controls */
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .secondary-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        button {
+            background-color: var(--primary-green);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.1s;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background-color: var(--accent-green);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        .btn-utility {
+            background-color: var(--dark-green);
+        }
+
+        .keyboard-hint {
+            margin-top: 30px;
+            font-size: 0.85rem;
+            color: #777;
+        }
+
+        @media (max-width: 480px) {
+            .flashcard-container { height: 250px; }
+            .card-content { font-size: 1.8rem; }
+            button { padding: 10px 15px; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Russisch Vokabeln</h1>
+        
+        <div class="progress" id="progress">1 / 70</div>
+
+        <div class="flashcard-container" id="cardContainer" tabindex="0">
+            <div class="flashcard" id="card">
+                <div class="card-face card-front">
+                    <div class="card-content" id="frontText">Front</div>
+                </div>
+                <div class="card-face card-back">
+                    <div class="card-content" id="backText">Back</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="prevBtn">← Vorherige</button>
+            <button id="nextBtn">Nächste →</button>
+        </div>
+
+        <div class="secondary-controls">
+            <button id="shuffleBtn" class="btn-utility">Mischen</button>
+            <button id="startBtn" class="btn-utility">An den Anfang</button>
+        </div>
+
+        <div class="keyboard-hint">
+            Tastatur: Pfeiltasten für Navigation | Leertaste/Enter zum Umdrehen | Pos1 für Anfang
+        </div>
+    </div>
+
+    <script>
+        // Die Vokabeldaten
+        const rawData = `
+1.	хо́лодно – kalt (Adverb)
+2.	тру́дно – schwierig / schwer (Adverb)
+3.	краси́во – schön (Adverb)
+4.	жа́рко – heiß (Adverb)
+5.	мно́го – viel (Adverb)
+6.	бы́стро – schnell (Adverb)
+7.	стра́нно – seltsam (Adverb)
+8.	темно́ – dunkel (Adverb)
+9.	гро́мко – laut (Adverb)
+10.	ве́село – lustig / fröhlich (Adverb)
+11.	грацио́зно – graziös (Adverb)
+12.	я́рко – hell / leuchtend (Adverb)
+13.	у́мный – klug
+14.	краси́вый – schön
+15.	вку́сный – lecker / schmackhaft
+16.	интере́сный – interessant
+17.	большо́й – groß
+18.	сло́жный – kompliziert / schwierig
+19.	холо́дный – kalt
+20.	дорого́й – teuer / wertvoll
+21.	ва́жный – wichtig
+22.	за́нятый – beschäftigt
+23.	си́ний – blau
+24.	до́брый – gütig / nett
+25.	прекра́сный – wunderschön / herrlich
+26.	но́вый – neu
+27.	огро́мный – riesig
+28.	кре́пкий – stark / fest
+29.	умён (Kurzform) – klug
+30.	краси́в (Kurzform) – schön
+31.	вку́сно (Kurzform / Adverb) – lecker
+32.	ва́жен (Kurzform) – wichtig
+33.	за́нят (Kurzform) – beschäftigt
+34.	до́бр (Kurzform) – gütig
+35.	прекра́сен (Kurzform) – wunderschön
+36.	велико́ (Kurzform / Adverb) – groß / großartig
+37.	учи́ться / вы́учиться – lernen / studieren
+38.	ви́деть / уви́деть – sehen
+39.	петь / спеть – singen
+40.	рабо́тать / порабо́тать – arbeiten
+41.	говори́ть / поговори́ть – sprechen / reden
+42.	спра́шивать / спроси́ть – fragen
+43.	покупа́ть / купи́ть – kaufen
+44.	бе́гать / побе́гать – laufen / rennen
+45.	устава́ть / уста́ть – müde werden / ermüden
+46.	танцева́ть / потанцева́ть – tanzen
+47.	свети́ть / посвети́ть – leuchten / scheinen
+48.	горди́ться / погорди́ться – stolz sein (auf)
+49.	ра́доваться / обра́доваться – sich freuen
+50.	у́лица – Straße / draußen
+51.	компью́тер – Computer
+52.	челове́к – Mensch / Person
+53.	су́мка – Tasche
+54.	я́блоко – Apfel
+55.	студе́нт – Student
+56.	пе́сня – Lied
+57.	маши́на – Auto
+58.	фильм – Film
+59.	ситуа́ция – Situation
+60.	часы́ – Uhr
+61.	вещь – Sache / Ding
+62.	вопро́с – Frage
+63.	день – Tag
+64.	зда́ние – Gebäude
+65.	сын – Sohn
+66.	де́ло – Angelegenheit / Sache
+67.	телефо́н – Telefon
+68.	зада́ча – Aufgabe / Problem
+69.	но́вость – Nachricht / Neuigkeit
+70.	ме́сто – Ort / Platz`;
+
+        // Daten parsen
+        let cards = [];
+        function parseData() {
+            const lines = rawData.trim().split('\n');
+            cards = lines.map(line => {
+                // Entferne die Nummerierung am Anfang (z.B. "1. ")
+                const cleanLine = line.replace(/^\d+\.\t?/, '').trim();
+                const parts = cleanLine.split(' – ');
+                return {
+                    front: parts[0] ? parts[0].trim() : "",
+                    back: parts[1] ? parts[1].trim() : ""
+                };
+            });
+        }
+
+        // App Status
+        let currentIndex = 0;
+        let isFlipped = false;
+
+        // DOM Elemente
+        const card = document.getElementById('card');
+        const cardContainer = document.getElementById('cardContainer');
+        const frontText = document.getElementById('frontText');
+        const backText = document.getElementById('backText');
+        const progress = document.getElementById('progress');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const shuffleBtn = document.getElementById('shuffleBtn');
+        const startBtn = document.getElementById('startBtn');
+
+        function updateCard() {
+            isFlipped = false;
+            card.classList.remove('is-flipped');
+            
+            const currentCard = cards[currentIndex];
+            frontText.innerText = currentCard.front;
+            backText.innerText = currentCard.back;
+
+            // Schriftgröße anpassen
+            adjustFontSize(frontText, currentCard.front);
+            adjustFontSize(backText, currentCard.back);
+
+            progress.innerText = `${currentIndex + 1} / ${cards.length}`;
+        }
+
+        function adjustFontSize(element, text) {
+            element.classList.remove('font-small', 'font-medium');
+            if (text.length > 25) {
+                element.classList.add('font-small');
+            } else if (text.length > 15) {
+                element.classList.add('font-medium');
+            }
+        }
+
+        function flipCard() {
+            isFlipped = !isFlipped;
+            card.classList.toggle('is-flipped');
+        }
+
+        function nextCard() {
+            if (currentIndex < cards.length - 1) {
+                currentIndex++;
+                updateCard();
+            }
+        }
+
+        function prevCard() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                updateCard();
+            }
+        }
+
+        function shuffleCards() {
+            for (let i = cards.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [cards[i], cards[j]] = [cards[j], cards[i]];
+            }
+            currentIndex = 0;
+            updateCard();
+        }
+
+        function goToStart() {
+            currentIndex = 0;
+            updateCard();
+        }
+
+        // Event Listeners
+        cardContainer.addEventListener('click', flipCard);
+
+        nextBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            nextCard();
+        });
+
+        prevBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            prevCard();
+        });
+
+        shuffleBtn.addEventListener('click', shuffleCards);
+        startBtn.addEventListener('click', goToStart);
+
+        // Keyboard Controls
+        document.addEventListener('keydown', (e) => {
+            if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                flipCard();
+            } else if (e.key === 'ArrowRight') {
+                nextCard();
+            } else if (e.key === 'ArrowLeft') {
+                prevCard();
+            } else if (e.key === 'Home') {
+                goToStart();
+            }
+        });
+
+        // Init
+        parseData();
+        updateCard();
+    </script>
+</body>
+</html>
