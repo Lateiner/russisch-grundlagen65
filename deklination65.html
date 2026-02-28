@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deklinations-Tabelle: ТАКОЙ</title>
+    <!-- Polyfill für Drag & Drop auf Touch-Geräten -->
+    <script src="https://cdn.jsdelivr.net/npm/drag-drop-touch@1.3.1/DragDropTouch.js"></script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 950px;
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .instructions {
+            background: #e1f5fe;
+            padding: 15px;
+            border-left: 5px solid var(--secondary-color);
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-size: 0.95rem;
+        }
+
+        /* Endungen-Pool */
+        .pool-label {
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: block;
+            color: var(--primary-color);
+        }
+
+        .endings-pool {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            background: #eee;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            min-height: 50px;
+            justify-content: center;
+            border: 2px dashed #ccc;
+        }
+
+        .ending-chip {
+            background: var(--secondary-color);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: grab;
+            font-weight: bold;
+            user-select: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .ending-chip:active { cursor: grabbing; }
+
+        /* Tabellen-Styling */
+        .table-responsive {
+            overflow-x: auto;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+            background: white;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            color: var(--primary-color);
+            font-size: 0.9rem;
+        }
+
+        .case-name {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            text-align: left;
+            width: 120px;
+        }
+
+        .base-word {
+            color: #777;
+        }
+
+        .drop-zone {
+            display: inline-block;
+            width: 60px;
+            height: 28px;
+            border-bottom: 2px dashed var(--secondary-color);
+            vertical-align: middle;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            line-height: 28px;
+        }
+
+        .drop-zone.correct {
+            background-color: #d4edda;
+            border-bottom: 2px solid var(--success-color);
+            color: var(--success-color);
+        }
+
+        .drop-zone.wrong {
+            background-color: #f8d7da;
+            border-bottom: 2px solid var(--error-color);
+            color: var(--error-color);
+        }
+
+        /* Buttons */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 10px 25px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            transition: opacity 0.2s;
+        }
+
+        .btn-reset { background-color: #95a5a6; }
+        .btn-solve { background-color: var(--primary-color); }
+        button:hover { opacity: 0.9; }
+
+        @media (max-width: 600px) {
+            th, td { padding: 6px; font-size: 0.85rem; }
+            .drop-zone { width: 45px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Russische Grammatik</h1>
+    <h2>Deklination von ТАКОЙ</h2>
+
+    <div class="instructions">
+        <strong>Anleitung:</strong> Vervollständigen Sie die Tabelle, indem Sie die richtigen Endungen auf die gestrichelten Linien ziehen.
+        Das System zeigt Ihnen <strong>sofort</strong>, ob die Endung korrekt ist (grün) oder nicht (rot).
+    </div>
+
+    <span class="pool-label">Verfügbare Endungen:</span>
+    <div id="pool" class="endings-pool">
+        <!-- Endungen werden per JS geladen -->
+    </div>
+
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>Fall (Kasus)</th>
+                    <th>Maskulin</th>
+                    <th>Feminin</th>
+                    <th>Neutrum</th>
+                    <th>Plural</th>
+                </tr>
+            </thead>
+            <tbody id="table-body">
+                <!-- Zeilen werden per JS generiert -->
+            </tbody>
+        </table>
+    </div>
+
+    <div class="controls">
+        <button class="btn-reset" onclick="resetTable()">Tabelle leeren</button>
+        <button class="btn-solve" onclick="solveTable()">Lösung anzeigen</button>
+    </div>
+</div>
+
+<script>
+    const cases = [
+        { name: "Nominativ", m: "ОЙ", f: "АЯ", n: "ОЕ", p: "ИЕ" },
+        { name: "Genitiv", m: "ОГО", f: "ОЙ", n: "ОГО", p: "ИХ" },
+        { name: "Dativ", m: "ОМУ", f: "ОЙ", n: "ОМУ", p: "ИМ" },
+        { name: "Akkusativ", m: "ОЙ/ОГО", f: "УЮ", n: "ОЕ", p: "ИЕ/ИХ" },
+        { name: "Instrumental", m: "ИМ", f: "ОЙ", n: "ИМ", p: "ИМИ" },
+        { name: "Präpositiv", m: "ОМ", f: "ОЙ", n: "ОМ", p: "ИХ" }
+    ];
+
+    const allEndings = ["ОЙ", "АЯ", "ОЕ", "ИЕ", "ОГО", "ОЙ", "ОГО", "ИХ", "ОМУ", "ОЙ", "ОМУ", "ИМ", "ОЙ/ОГО", "УЮ", "ОЕ", "ИЕ/ИХ", "ИМ", "ОЙ", "ИМ", "ИМИ", "ОМ", "ОЙ", "ОМ", "ИХ"];
+
+    function init() {
+        renderPool();
+        renderTable();
+    }
+
+    function renderPool() {
+        const pool = document.getElementById('pool');
+        pool.innerHTML = '';
+        // Einzigartige Endungen für den Vorrat (gemischt)
+        const uniqueEndings = [...new Set(allEndings)].sort(() => Math.random() - 0.5);
+        uniqueEndings.forEach(end => {
+            const chip = document.createElement('div');
+            chip.className = 'ending-chip';
+            chip.draggable = true;
+            chip.innerText = end;
+            chip.ondragstart = drag;
+            pool.appendChild(chip);
+        });
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('table-body');
+        tbody.innerHTML = '';
+        cases.forEach((c, rowIndex) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="case-name">${c.name}</td>
+                <td><span class="base-word">ТАК-</span><div class="drop-zone" id="dz-${rowIndex}-m" data-ans="${c.m}" ondrop="drop(event)" ondragover="allowDrop(event)"></div></td>
+                <td><span class="base-word">ТАК-</span><div class="drop-zone" id="dz-${rowIndex}-f" data-ans="${c.f}" ondrop="drop(event)" ondragover="allowDrop(event)"></div></td>
+                <td><span class="base-word">ТАК-</span><div class="drop-zone" id="dz-${rowIndex}-n" data-ans="${c.n}" ondrop="drop(event)" ondragover="allowDrop(event)"></div></td>
+                <td><span class="base-word">ТАК-</span><div class="drop-zone" id="dz-${rowIndex}-p" data-ans="${c.p}" ondrop="drop(event)" ondragover="allowDrop(event)"></div></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function allowDrop(ev) {
+        ev.preventDefault();
+    }
+
+    function drag(ev) {
+        ev.dataTransfer.setData("text", ev.target.innerText);
+    }
+
+    function drop(ev) {
+        ev.preventDefault();
+        const data = ev.dataTransfer.getData("text");
+        const zone = ev.target;
+        
+        if (!zone.classList.contains('drop-zone')) return;
+
+        zone.innerText = data;
+        if (data === zone.getAttribute('data-ans')) {
+            zone.className = "drop-zone correct";
+        } else {
+            zone.className = "drop-zone wrong";
+        }
+    }
+
+    function resetTable() {
+        renderTable();
+    }
+
+    function solveTable() {
+        const zones = document.querySelectorAll('.drop-zone');
+        zones.forEach(zone => {
+            zone.innerText = zone.getAttribute('data-ans');
+            zone.className = "drop-zone correct";
+        });
+    }
+
+    init();
+</script>
+
+</body>
+</html>
