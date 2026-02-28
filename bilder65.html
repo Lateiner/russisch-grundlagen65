@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bild-Situations-Zuordnung: ТАК vs. ТАКОЙ</title>
+    <script src="https://cdn.jsdelivr.net/npm/drag-drop-touch@1.3.1/DragDropTouch.js"></script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: var(--primary-color);
+        }
+
+        .instructions {
+            background: #e3f2fd;
+            padding: 20px;
+            border-left: 5px solid var(--secondary-color);
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        /* Grid für die Aufgaben-Karten */
+        .exercise-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+        }
+
+        .situation-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            background: #fafafa;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+
+        .situation-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        }
+
+        .visual {
+            font-size: 4rem;
+            margin-bottom: 10px;
+        }
+
+        .description {
+            font-style: italic;
+            color: #666;
+            margin-bottom: 20px;
+            text-align: center;
+            min-height: 3em;
+        }
+
+        .options {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option-btn {
+            background: white;
+            border: 2px solid #ddd;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            text-align: left;
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        .option-btn:hover:not(.disabled) {
+            border-color: var(--secondary-color);
+            background-color: #f0f7ff;
+        }
+
+        /* Feedback Zustände */
+        .option-btn.correct {
+            background-color: #d4edda !important;
+            border-color: var(--success-color) !important;
+            color: #155724;
+            font-weight: bold;
+        }
+
+        .option-btn.wrong {
+            background-color: #f8d7da !important;
+            border-color: var(--error-color) !important;
+            color: #721c24;
+        }
+
+        .option-btn.disabled {
+            cursor: default;
+        }
+
+        /* Footer Controls */
+        .controls {
+            margin-top: 40px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            border-top: 2px solid #eee;
+            padding-top: 20px;
+        }
+
+        button.main-btn {
+            padding: 12px 25px;
+            font-size: 1rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            transition: opacity 0.2s;
+        }
+
+        .btn-reset { background-color: #95a5a6; }
+        .btn-solve { background-color: var(--primary-color); }
+        button.main-btn:hover { opacity: 0.9; }
+
+        @media (max-width: 600px) {
+            .exercise-grid { grid-template-columns: 1fr; }
+            .container { padding: 15px; }
+            .visual { font-size: 3rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Russische Grammatik</h1>
+    <h2>Bedeutung im Kontext: ТАК vs. ТАКОЙ</h2>
+
+    <div class="instructions">
+        <strong>Anleitung:</strong> Schauen Sie sich das Emoji und die Beschreibung der Situation an. Welcher Satz passt am besten zu dieser Situation?
+        <br>Klicken Sie auf die richtige Antwort. Sie erhalten <strong>sofortiges Feedback</strong>.
+    </div>
+
+    <div id="exercise-grid" class="exercise-grid">
+        <!-- JS generiert die Karten -->
+    </div>
+
+    <div class="controls">
+        <button class="main-btn btn-reset" onclick="resetAll()">Zurücksetzen</button>
+        <button class="main-btn btn-solve" onclick="showAllSolutions()">Lösungen anzeigen</button>
+    </div>
+</div>
+
+<script>
+    const situations = [
+        {
+            id: 1,
+            emoji: "🥶",
+            desc: "Jemand zittert draußen im Schnee.",
+            options: ["Ему ТАК холодно.", "Он ТАКОЙ холодный.", "Это ТАКАЯ холодно."],
+            correct: 0
+        },
+        {
+            id: 2,
+            emoji: "🍎",
+            desc: "Ein Biss in einen besonders süßen Apfel.",
+            options: ["Яблоко ТАК вкусно.", "Это ТАКОЕ вкусное яблоко.", "Яблоко ТАК вкусная."],
+            correct: 1
+        },
+        {
+            id: 3,
+            emoji: "⌚",
+            desc: "Blick auf ein Preisschild mit vielen Nullen.",
+            options: ["Это ТАК дорогие часы.", "Часы ТАК дорого.", "Это ТАКИЕ дорогие часы."],
+            correct: 2
+        },
+        {
+            id: 4,
+            emoji: "🎤",
+            desc: "Ein Kompliment für eine wunderbare Stimme.",
+            options: ["Она ТАК красиво поёт.", "Она ТАКАЯ красиво поёт.", "Голос ТАК красивая."],
+            correct: 0
+        },
+        {
+            id: 5,
+            emoji: "🧠",
+            desc: "Ein Junge löst ein extrem schweres Rätsel.",
+            options: ["Он ТАК умён.", "Он ТАКОЙ умный мальчик.", "Оба варианта верны (beide sind korrekt)."],
+            correct: 2
+        },
+        {
+            id: 6,
+            emoji: "🏙️",
+            desc: "Staunen vor einem riesigen Wolkenkratzer.",
+            options: ["Здание ТАК высокое.", "Это ТАКОЕ высокое здание.", "Здание ТАКОЙ высокий."],
+            correct: 1
+        },
+        {
+            id: 7,
+            emoji: "🌑",
+            desc: "Man kann im Zimmer die eigene Hand nicht sehen.",
+            options: ["В комнате ТАК темно.", "Комната ТАКАЯ темно.", "Это ТАКОЙ темный."],
+            correct: 0
+        },
+        {
+            id: 8,
+            emoji: "☕",
+            desc: "Der Kaffee ist extrem stark und aromatisch.",
+            options: ["Кофе ТАК крепко.", "Это ТАКАЯ крепкая кофе.", "Это ТАКОЙ крепкий кофе."],
+            correct: 2
+        },
+        {
+            id: 9,
+            emoji: "📖",
+            desc: "Ein Buch, das man nicht weglegen kann.",
+            options: ["Книга ТАК интересно.", "Это ТАКАЯ интересная книга.", "Книга ТАКОЕ интересное."],
+            correct: 1
+        },
+        {
+            id: 10,
+            emoji: "✍️",
+            desc: "Ein Student verzweifelt über einer Hausarbeit.",
+            options: ["Ему ТАК трудно.", "Задание ТАК трудное.", "Он ТАКОЙ трудно."],
+            correct: 0
+        },
+        {
+            id: 11,
+            emoji: "💃",
+            desc: "Eine Tänzerin bewegt sich sehr elegant.",
+            options: ["Она ТАК грациозно танцует.", "Она ТАКАЯ грациозно танцует.", "Танец ТАК грациозная."],
+            correct: 0
+        },
+        {
+            id: 12,
+            emoji: "🏔️",
+            desc: "Aussicht von einem Berggipfel.",
+            options: ["Здесь ТАК красиво.", "Вид ТАК красивое.", "Это ТАКАЯ красивое место."],
+            correct: 0
+        },
+        {
+            id: 13,
+            emoji: "🚗",
+            desc: "Ein riesiger SUV parkt ein.",
+            options: ["Это ТАК большая машина.", "Машина ТАК большой.", "Это ТАКАЯ большая машина."],
+            correct: 2
+        },
+        {
+            id: 14,
+            emoji: "🤝",
+            desc: "Leute helfen einander freiwillig.",
+            options: ["Они ТАК добрые.", "Они ТАКИЕ добрые люди.", "Люди ТАК доброе."],
+            correct: 1
+        },
+        {
+            id: 15,
+            emoji: "😫",
+            desc: "Nach 12 Stunden harter Arbeit.",
+            options: ["Я ТАК устал.", "Я ТАКОЙ устал.", "Работа ТАК устала."],
+            correct: 0
+        },
+        {
+            id: 16,
+            emoji: "📦",
+            desc: "Ein Paket, das man kaum heben kann.",
+            options: ["Коробка ТАК тяжёлая.", "Это ТАКАЯ тяжёлая коробка.", "Коробка ТАК тяжело."],
+            correct: 1
+        },
+        {
+            id: 17,
+            emoji: "🏃‍♂️",
+            desc: "Ein Sportler stellt einen Rekord auf.",
+            options: ["Он бежит ТАК быстро.", "Он ТАКОЙ быстро бежит.", "Бег ТАК быстрый."],
+            correct: 0
+        },
+        {
+            id: 18,
+            emoji: "❄️",
+            desc: "Man spricht über das Wetter heute.",
+            options: ["Сегодня ТАК холодный день.", "Сегодня ТАКОЙ холодный день.", "Погода ТАКОЙ холодный."],
+            correct: 1
+        },
+        {
+            id: 19,
+            emoji: "🌞",
+            desc: "Die Sonne scheint sehr hell.",
+            options: ["Солнце ТАК ярко светит.", "Солнце ТАКОЕ ярко.", "Свет ТАК яркая."],
+            correct: 0
+        },
+        {
+            id: 20,
+            emoji: "🛣️",
+            desc: "Eine endlose Straße durch die Steppe.",
+            options: ["Дорога ТАК длинный.", "Это ТАКАЯ длинная дорога.", "Дорога ТАК длинно."],
+            correct: 1
+        }
+    ];
+
+    function renderExercises() {
+        const grid = document.getElementById('exercise-grid');
+        grid.innerHTML = '';
+        
+        situations.forEach(sit => {
+            const card = document.createElement('div');
+            card.className = 'situation-card';
+            card.id = `card-${sit.id}`;
+            
+            card.innerHTML = `
+                <div class="visual">${sit.emoji}</div>
+                <div class="description">${sit.desc}</div>
+                <div class="options" id="options-${sit.id}">
+                    ${sit.options.map((opt, idx) => `
+                        <button class="option-btn" onclick="checkAnswer(${sit.id}, ${idx})">${opt}</button>
+                    `).join('')}
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    window.checkAnswer = function(sitId, selectedIdx) {
+        const sit = situations.find(s => s.id === sitId);
+        const buttons = document.querySelectorAll(`#options-${sitId} .option-btn`);
+        
+        // Buttons deaktivieren
+        buttons.forEach(btn => btn.classList.add('disabled'));
+        
+        if (selectedIdx === sit.correct) {
+            buttons[selectedIdx].classList.add('correct');
+        } else {
+            buttons[selectedIdx].classList.add('wrong');
+            buttons[sit.correct].classList.add('correct');
+        }
+    }
+
+    window.resetAll = function() {
+        renderExercises();
+    }
+
+    window.showAllSolutions = function() {
+        situations.forEach(sit => {
+            const buttons = document.querySelectorAll(`#options-${sit.id} .option-btn`);
+            buttons.forEach(btn => btn.classList.add('disabled'));
+            buttons[sit.correct].classList.add('correct');
+        });
+    }
+
+    // Start
+    renderExercises();
+</script>
+
+</body>
+</html>
