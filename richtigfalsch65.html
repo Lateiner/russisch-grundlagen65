@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swipe-Training: ТАК vs. ТАКОЙ</title>
+    <!-- Polyfill für Drag & Drop auf Touch-Geräten -->
+    <script src="https://cdn.jsdelivr.net/npm/drag-drop-touch@1.3.1/DragDropTouch.js"></script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 10px;
+            overflow-x: hidden;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        h1, h2 { color: var(--primary-color); }
+
+        .instructions {
+            background: #e1f5fe;
+            padding: 15px;
+            border-left: 5px solid var(--secondary-color);
+            border-radius: 8px;
+            margin-bottom: 25px;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        /* Swipe-Bereich */
+        .swipe-area {
+            position: relative;
+            height: 350px;
+            width: 100%;
+            perspective: 1000px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            cursor: grab;
+            user-select: none;
+            touch-action: none;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            border: 2px solid #eee;
+        }
+
+        .card:active { cursor: grabbing; }
+
+        .card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            pointer-events: none;
+        }
+
+        /* Swipe-Indikatoren */
+        .indicator {
+            position: absolute;
+            top: 20px;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .indicator.right {
+            right: 20px;
+            color: var(--success-color);
+            border: 4px solid var(--success-color);
+            transform: rotate(-15deg);
+        }
+
+        .indicator.left {
+            left: 20px;
+            color: var(--error-color);
+            border: 4px solid var(--error-color);
+            transform: rotate(15deg);
+        }
+
+        /* Manuelle Buttons für Desktop */
+        .manual-controls {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 30px;
+        }
+
+        .btn-swipe {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 1.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.1s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            color: white;
+        }
+
+        .btn-swipe:active { transform: scale(0.9); }
+        .btn-wrong { background-color: var(--error-color); }
+        .btn-right { background-color: var(--success-color); }
+
+        /* Status & Feedback */
+        .progress-container {
+            width: 100%;
+            height: 10px;
+            background: #ddd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background: var(--secondary-color);
+            transition: width 0.3s;
+        }
+
+        .feedback-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 5rem;
+            z-index: 100;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+
+        /* Footer Controls */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .action-btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+        }
+
+        .btn-reset { background: #95a5a6; }
+        .btn-solve { background: var(--primary-color); }
+
+        /* Ergebnisse */
+        #results {
+            display: none;
+            text-align: left;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .result-item { margin-bottom: 8px; padding: 5px; border-bottom: 1px solid #eee; }
+        .res-correct { color: var(--success-color); font-weight: bold; }
+        .res-wrong { color: var(--error-color); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Russische Grammatik</h1>
+    <h2>Swipe-Training: Richtig oder Falsch?</h2>
+
+    <div class="instructions">
+        <strong>Anleitung:</strong> Ist der Satz korrekt? <br>
+        👉 <strong>Swipe nach RECHTS</strong> (oder Häkchen klicken) für <strong>RICHTIG</strong>.<br>
+        👈 <strong>Swipe nach LINKS</strong> (oder X klicken) für <strong>FALSCH</strong>.
+    </div>
+
+    <div class="progress-container">
+        <div id="progress-bar"></div>
+    </div>
+    <p id="counter">Karte: 1 / 20</p>
+
+    <div class="swipe-area" id="swipe-area">
+        <div class="indicator left">FALSCH</div>
+        <div class="indicator right">RICHTIG</div>
+        <div class="card" id="active-card">
+            <h3 id="sentence-text">Laden...</h3>
+        </div>
+    </div>
+
+    <div class="manual-controls">
+        <button class="btn-swipe btn-wrong" onclick="handleDecision(false)">✖</button>
+        <button class="btn-swipe btn-right" onclick="handleDecision(true)">✔</button>
+    </div>
+
+    <div class="feedback-overlay" id="feedback-overlay"></div>
+
+    <div id="results">
+        <h3>Deine Ergebnisse:</h3>
+        <div id="results-list"></div>
+        <button class="action-btn btn-reset" onclick="resetGame()" style="width:100%; margin-top:10px;">Nochmal spielen</button>
+    </div>
+
+    <div class="controls">
+        <button class="action-btn btn-reset" onclick="resetGame()">Zurücksetzen</button>
+        <button class="action-btn btn-solve" onclick="showSolutions()">Lösungen anzeigen</button>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        { s: "Она ТАК красивая.", c: false },
+        { s: "Она ТАК красива.", c: true },
+        { s: "Миша ТАКОЙ умный.", c: true },
+        { s: "Миша ТАК умный.", c: false },
+        { s: "На улице ТАК холодно.", c: true },
+        { s: "На улице ТАКОЕ холодно.", c: false },
+        { s: "Это ТАК интересный фильм.", c: false },
+        { s: "Это ТАКОЙ интересный фильм.", c: true },
+        { s: "Яблоки ТАК вкусны.", c: true },
+        { s: "Яблоки ТАКИЕ вкусно.", c: false },
+        { s: "Она поёт ТАК красиво.", c: true },
+        { s: "Она поёт ТАКАЯ красиво.", c: false },
+        { s: "Вы ТАК добры.", c: true },
+        { s: "Вы ТАКИЕ добры.", c: false },
+        { s: "Я вижу ТАКУЮ красивую девушку.", c: true },
+        { s: "Я вижу ТАКАЯ красивую девушку.", c: false },
+        { s: "У меня нет ТАКОГО компьютера.", c: true },
+        { s: "У меня нет ТАКОЙ компьютера.", c: false },
+        { s: "Учиться ТАК трудно.", c: true },
+        { s: "Учиться ТАКОЕ трудно.", c: false }
+    ];
+
+    let currentIndex = 0;
+    let score = 0;
+    let isAnimating = false;
+    let startX = 0;
+    let currentX = 0;
+
+    const card = document.getElementById('active-card');
+    const text = document.getElementById('sentence-text');
+    const counter = document.getElementById('counter');
+    const progressBar = document.getElementById('progress-bar');
+    const feedbackOverlay = document.getElementById('feedback-overlay');
+    const indRight = document.querySelector('.indicator.right');
+    const indLeft = document.querySelector('.indicator.left');
+
+    function initCard() {
+        if (currentIndex >= quizData.length) {
+            showFinalResults();
+            return;
+        }
+        isAnimating = false;
+        card.style.transition = 'none';
+        card.style.transform = 'translate(0, 0) rotate(0)';
+        card.style.opacity = '1';
+        text.innerText = `„${quizData[currentIndex].s}“`;
+        counter.innerText = `Karte: ${currentIndex + 1} / ${quizData.length}`;
+        progressBar.style.width = `${(currentIndex / quizData.length) * 100}%`;
+        indRight.style.opacity = 0;
+        indLeft.style.opacity = 0;
+    }
+
+    // Touch/Mouse Logic
+    card.addEventListener('mousedown', startDrag);
+    card.addEventListener('touchstart', startDrag);
+
+    function startDrag(e) {
+        if (isAnimating) return;
+        startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+        card.style.transition = 'none';
+        document.addEventListener('mousemove', onDrag);
+        document.addEventListener('touchmove', onDrag);
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchend', endDrag);
+    }
+
+    function onDrag(e) {
+        currentX = (e.type.includes('touch') ? e.touches[0].clientX : e.clientX) - startX;
+        const rotation = currentX / 15;
+        card.style.transform = `translate(${currentX}px, 0) rotate(${rotation}deg)`;
+        
+        // Show indicators
+        if (currentX > 50) {
+            indRight.style.opacity = Math.min(currentX / 150, 1);
+            indLeft.style.opacity = 0;
+        } else if (currentX < -50) {
+            indLeft.style.opacity = Math.min(Math.abs(currentX) / 150, 1);
+            indRight.style.opacity = 0;
+        } else {
+            indRight.style.opacity = 0;
+            indLeft.style.opacity = 0;
+        }
+    }
+
+    function endDrag() {
+        document.removeEventListener('mousemove', onDrag);
+        document.removeEventListener('touchmove', onDrag);
+        
+        if (currentX > 120) {
+            handleDecision(true);
+        } else if (currentX < -120) {
+            handleDecision(false);
+        } else {
+            // Snap back
+            card.style.transition = 'transform 0.3s ease';
+            card.style.transform = 'translate(0, 0) rotate(0)';
+            indRight.style.opacity = 0;
+            indLeft.style.opacity = 0;
+        }
+        currentX = 0;
+    }
+
+    function handleDecision(userSaysCorrect) {
+        if (isAnimating) return;
+        isAnimating = true;
+
+        const actualCorrect = quizData[currentIndex].c;
+        const isUserRight = userSaysCorrect === actualCorrect;
+
+        if (isUserRight) score++;
+
+        // Visual Feedback
+        feedbackOverlay.innerText = isUserRight ? '✔' : '✖';
+        feedbackOverlay.style.color = isUserRight ? 'var(--success-color)' : 'var(--error-color)';
+        feedbackOverlay.style.opacity = '1';
+        feedbackOverlay.style.transform = 'translate(-50%, -50%) scale(1.5)';
+
+        // Animate card out
+        card.style.transition = 'transform 0.5s ease, opacity 0.5s ease';
+        const direction = userSaysCorrect ? 1000 : -1000;
+        card.style.transform = `translate(${direction}px, 0) rotate(${direction/20}deg)`;
+        card.style.opacity = '0';
+
+        setTimeout(() => {
+            feedbackOverlay.style.opacity = '0';
+            feedbackOverlay.style.transform = 'translate(-50%, -50%) scale(1)';
+            currentIndex++;
+            initCard();
+        }, 500);
+    }
+
+    function showFinalResults() {
+        document.getElementById('swipe-area').style.display = 'none';
+        document.querySelector('.manual-controls').style.display = 'none';
+        const resultsDiv = document.getElementById('results');
+        const list = document.getElementById('results-list');
+        resultsDiv.style.display = 'block';
+        list.innerHTML = `<p>Du hast <strong>${score} von ${quizData.length}</strong> richtig bewertet!</p>`;
+        
+        quizData.forEach(item => {
+            const statusClass = item.c ? 'res-correct' : 'res-wrong';
+            const statusText = item.c ? 'RICHTIG' : 'FALSCH';
+            list.innerHTML += `<div class="result-item">„${item.s}“ ist <span class="${statusClass}">${statusText}</span></div>`;
+        });
+    }
+
+    function resetGame() {
+        currentIndex = 0;
+        score = 0;
+        document.getElementById('swipe-area').style.display = 'block';
+        document.querySelector('.manual-controls').style.display = 'flex';
+        document.getElementById('results').style.display = 'none';
+        initCard();
+    }
+
+    function showSolutions() {
+        showFinalResults();
+    }
+
+    initCard();
+</script>
+
+</body>
+</html>
