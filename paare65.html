@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matching: Paare mit Farbkennzeichnung</title>
+    <script src="https://cdn.jsdelivr.net/npm/drag-drop-touch@1.3.1/DragDropTouch.js"></script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .instructions {
+            background: #e1f5fe;
+            padding: 15px;
+            border-left: 5px solid var(--secondary-color);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+        }
+
+        .matching-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .match-card {
+            background: #fff;
+            border: 2px solid #ddd;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            user-select: none;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+        }
+
+        .match-card:hover {
+            border-color: var(--secondary-color);
+            background-color: #f0f7ff;
+        }
+
+        .match-card.selected {
+            border-color: var(--secondary-color);
+            background-color: #e3f2fd;
+            transform: scale(1.02);
+        }
+
+        /* Standard-Match Farbe (Grün) für manuelles Lösen */
+        .match-card.matched-manually {
+            background-color: #d4edda !important;
+            border-color: var(--success-color) !important;
+            color: #155724;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .match-card.error {
+            background-color: #f8d7da;
+            border-color: var(--error-color);
+            color: #721c24;
+        }
+
+        .match-card.solved-auto {
+            cursor: default;
+            pointer-events: none;
+            border-color: rgba(0,0,0,0.1);
+            color: #000;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        .btn-reset { background-color: #95a5a6; }
+        .btn-solve { background-color: var(--primary-color); }
+        button:hover { opacity: 0.9; }
+        button:active { transform: scale(0.98); }
+
+        @media (max-width: 600px) {
+            .matching-grid { gap: 8px; }
+            .match-card { font-size: 0.85rem; padding: 8px; min-height: 40px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Russische Grammatik</h1>
+    <h2>Paare finden: ТАКОЙ vs. ТАК</h2>
+
+    <div class="instructions">
+        <strong>Anleitung:</strong> Verbinden Sie die Langform (links) mit der passenden Kurzform-Konstruktion (rechts). 
+        Klicken Sie zuerst ein Feld links und dann das Gegenstück rechts an.
+        <br>Bei <strong>"Lösungen anzeigen"</strong> werden zusammengehörige Paare in der gleichen Farbe markiert.
+    </div>
+
+    <div class="matching-grid">
+        <div id="left-col" class="column"></div>
+        <div id="right-col" class="column"></div>
+    </div>
+
+    <div class="controls">
+        <button class="btn-reset" onclick="resetGame()">Zurücksetzen</button>
+        <button class="btn-solve" onclick="showAllSolutions()">Lösungen anzeigen</button>
+    </div>
+</div>
+
+<script>
+    const pairs = [
+        { left: "ТАКОЙ умный", right: "ТАК умён" },
+        { left: "ТАКАЯ красивая", right: "ТАК красива" },
+        { left: "ТАКОЕ вкусное", right: "ТАК вкусно" },
+        { left: "ТАКИЕ добрые", right: "ТАК добры" },
+        { left: "ТАКОЙ прекрасный", right: "ТАК прекрасен" },
+        { left: "ТАКАЯ занятая", right: "ТАК заняta" },
+        { left: "ТАКИЕ умные", right: "ТАК умны" },
+        { left: "ТАКОЙ счастливый", right: "ТАК счастлив" },
+        { left: "ТАКАЯ здоровая", right: "ТАК здорова" },
+        { left: "ТАКИЕ прекрасные", right: "ТАК прекрасны" },
+        { left: "ТАКОЕ большое", right: "ТАК велико" },
+        { left: "ТАКАЯ добрая", right: "ТАК добра" },
+        { left: "ТАКОЙ занятый", right: "ТАК занят" },
+        { left: "ТАКИЕ счастливые", right: "ТАК счастливы" },
+        { left: "ТАКОЙ добрый", right: "ТАК добр" },
+        { left: "ТАКАЯ прекрасная", right: "ТАК прекрасна" },
+        { left: "ТАКОЕ красивое", right: "ТАК красиво" },
+        { left: "ТАКИЕ здоровые", right: "ТАК здоровы" },
+        { left: "ТАКОЙ важный", right: "ТАК важен" },
+        { left: "ТАКАЯ важная", right: "ТАК важна" }
+    ];
+
+    // 20 gut unterscheidbare helle Farben für die Paaranzeige
+    const solutionColors = [
+        "#FFEBEE", "#E3F2FD", "#F1F8E9", "#FFF3E0", "#F3E5F5", 
+        "#E0F2F1", "#EFEBE9", "#FFFDE7", "#E8EAF6", "#F9FBE7",
+        "#E0F7FA", "#FCE4EC", "#FFF8E1", "#E8F5E9", "#E1F5FE",
+        "#FBE9E7", "#F3E5F5", "#E8EAF6", "#E0F2F1", "#F1F8E9"
+    ];
+
+    let selectedLeft = null;
+
+    function shuffle(array) {
+        return array.sort(() => Math.random() - 0.5);
+    }
+
+    function initGame() {
+        const leftCol = document.getElementById('left-col');
+        const rightCol = document.getElementById('right-col');
+        leftCol.innerHTML = '';
+        rightCol.innerHTML = '';
+        selectedLeft = null;
+
+        // Linke Seite rendern
+        pairs.forEach((pair, index) => {
+            const card = document.createElement('div');
+            card.className = 'match-card';
+            card.innerText = pair.left;
+            card.dataset.index = index;
+            card.id = `left-${index}`;
+            card.onclick = () => selectLeft(card);
+            leftCol.appendChild(card);
+        });
+
+        // Rechte Seite rendern (gemischt)
+        const rightData = pairs.map((p, i) => ({ text: p.right, index: i }));
+        shuffle(rightData).forEach((item) => {
+            const card = document.createElement('div');
+            card.className = 'match-card';
+            card.innerText = item.text;
+            card.dataset.index = item.index;
+            card.id = `right-${item.index}`;
+            card.onclick = () => selectRight(card);
+            rightCol.appendChild(card);
+        });
+    }
+
+    function selectLeft(card) {
+        if (card.classList.contains('matched-manually') || card.classList.contains('solved-auto')) return;
+        document.querySelectorAll('#left-col .match-card').forEach(c => c.classList.remove('selected'));
+        selectedLeft = card;
+        card.classList.add('selected');
+    }
+
+    function selectRight(card) {
+        if (!selectedLeft || card.classList.contains('matched-manually') || card.classList.contains('solved-auto')) return;
+
+        const leftIndex = selectedLeft.dataset.index;
+        const rightIndex = card.dataset.index;
+
+        if (leftIndex === rightIndex) {
+            selectedLeft.classList.remove('selected');
+            selectedLeft.classList.add('matched-manually');
+            card.classList.add('matched-manually');
+            selectedLeft = null;
+        } else {
+            card.classList.add('error');
+            selectedLeft.classList.add('error');
+            setTimeout(() => {
+                card.classList.remove('error');
+                if (selectedLeft) selectedLeft.classList.remove('error', 'selected');
+                selectedLeft = null;
+            }, 500);
+        }
+    }
+
+    function resetGame() {
+        initGame();
+    }
+
+    function showAllSolutions() {
+        pairs.forEach((_, index) => {
+            const leftCard = document.getElementById(`left-${index}`);
+            const rightCard = document.getElementById(`right-${index}`);
+            const color = solutionColors[index % solutionColors.length];
+
+            leftCard.classList.remove('selected', 'error', 'matched-manually');
+            rightCard.classList.remove('selected', 'error', 'matched-manually');
+
+            leftCard.classList.add('solved-auto');
+            rightCard.classList.add('solved-auto');
+
+            leftCard.style.backgroundColor = color;
+            rightCard.style.backgroundColor = color;
+            leftCard.style.borderColor = "#999";
+            rightCard.style.borderColor = "#999";
+        });
+    }
+
+    initGame();
+</script>
+
+</body>
+</html>
