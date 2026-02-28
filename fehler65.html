@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch Übung: ТАК vs. ТАКОЙ Dropdown</title>
+    <script src="https://cdn.jsdelivr.net/npm/drag-drop-touch@1.3.1/DragDropTouch.js"></script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-bg: #d4edda;
+            --success-border: #28a745;
+            --error-bg: #f8d7da;
+            --error-border: #dc3545;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: var(--primary-color);
+        }
+
+        .instructions {
+            background: #e1f5fe;
+            padding: 15px;
+            border-left: 5px solid var(--secondary-color);
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+
+        .exercise-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .sentence-item {
+            padding: 15px;
+            background: #fafafa;
+            border-radius: 8px;
+            border: 1px solid #eee;
+            font-size: 1.1rem;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+
+        select {
+            padding: 6px 10px;
+            font-size: 1rem;
+            border: 2px solid #ccc;
+            border-radius: 4px;
+            background-color: white;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        /* Sofort-Feedback Klassen */
+        select.correct {
+            background-color: var(--success-bg);
+            border-color: var(--success-border);
+            color: #155724;
+        }
+
+        select.wrong {
+            background-color: var(--error-bg);
+            border-color: var(--error-border);
+            color: #721c24;
+        }
+
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            color: white;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+
+        .btn-reset { background-color: #95a5a6; }
+        .btn-solve { background-color: var(--primary-color); }
+        button:hover { opacity: 0.9; }
+
+        @media (max-width: 600px) {
+            .container { padding: 15px; }
+            .sentence-item { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Russische Grammatik</h1>
+    <h2>Wähle die richtige Form: ТАК oder ТАКОЙ?</h2>
+
+    <div class="instructions">
+        <strong>Anleitung:</strong> Wähle für jede Lücke die korrekte Form aus dem Dropdown-Menü. <br>
+        Das Feld wird <strong>sofort grün</strong> bei einer richtigen Antwort und <strong>rot</strong> bei einer falschen.
+    </div>
+
+    <div id="exercise-list" class="exercise-list">
+        <!-- Aufgaben werden per JS eingefügt -->
+    </div>
+
+    <div class="controls">
+        <button class="btn-reset" onclick="resetAll()">Zurücksetzen</button>
+        <button class="btn-solve" onclick="solveAll()">Lösungen anzeigen</button>
+    </div>
+</div>
+
+<script>
+    const exercises = [
+        { id: 1, text: ["Сегодня на улице", "холодно!"], options: ["ТАК", "ТАКОЙ", "ТАКАЯ"], answer: "ТАК" },
+        { id: 2, text: ["Это", "интересный фильм."], options: ["ТАК", "ТАКОЙ", "ТАКОЕ"], answer: "ТАКОЙ" },
+        { id: 3, text: ["Почему ты", "грустная?"], options: ["ТАК", "ТАКАЯ", "ТАКИЕ"], answer: "ТАКАЯ" },
+        { id: 4, text: ["Твои дети", "умные."], options: ["ТАК", "ТАКИЕ", "ТАКАЯ"], answer: "ТАКИЕ" },
+        { id: 5, text: ["Это яблоко", "вкусное."], options: ["ТАК", "ТАКОЕ", "ТАКОЙ"], answer: "ТАКОЕ" },
+        { id: 6, text: ["Она поёт", "красиво."], options: ["ТАК", "ТАКАЯ", "ТАКИЕ"], answer: "ТАК" },
+        { id: 7, text: ["Эта песня", "прекрасна."], options: ["ТАК", "ТАКАЯ", "ТАКОЕ"], answer: "ТАК" },
+        { id: 8, text: ["Он", "умный человек."], options: ["ТАК", "ТАКОЙ", "ТАКОЕ"], answer: "ТАКОЙ" },
+        { id: 9, text: ["На улице", "темно."], options: ["ТАК", "ТАКОЙ", "ТАКАЯ"], answer: "ТАК" },
+        { id: 10, text: ["Мы видели", "красивого человека."], options: ["ТАКУЮ", "ТАКОГО", "ТАКОЙ"], answer: "ТАКОГО" },
+        { id: 11, text: ["У меня нет", "дорогой сумки."], options: ["ТАК", "ТАКОЙ", "ТАКИЕ"], answer: "ТАКОЙ" },
+        { id: 12, text: ["Я подошёл к", "хорошему человеку."], options: ["ТАКОМУ", "ТАКОЙ", "ТАКИМ"], answer: "ТАКОМУ" },
+        { id: 13, text: ["Книга", "интересная."], options: ["ТАК", "ТАКАЯ", "ТАКОЕ"], answer: "ТАКАЯ" },
+        { id: 14, text: ["Мы говорили о", "странной ситуации."], options: ["ТАКОЙ", "ТАКУЮ", "ТАКОЕ"], answer: "ТАКОЙ" },
+        { id: 15, text: ["Я вижу", "красивую девушку."], options: ["ТАКАЯ", "ТАКУЮ", "ТАКОЙ"], answer: "ТАКУЮ" },
+        { id: 16, text: ["Миша", "умён."], options: ["ТАК", "ТАКОЙ", "ТАКИЕ"], answer: "ТАК" },
+        { id: 17, text: ["Они", "добры к нам."], options: ["ТАК", "ТАКИЕ", "ТАКАЯ"], answer: "ТАК" },
+        { id: 18, text: ["Я никогда не видел", "больших собак."], options: ["ТАКИЕ", "ТАКИХ", "ТАКИМИ"], answer: "ТАКИХ" },
+        { id: 19, text: ["Вчера был", "холодный день."], options: ["ТАК", "ТАКОЙ", "ТАКОЕ"], answer: "ТАКОЙ" },
+        { id: 20, text: ["Окно", "большое."], options: ["ТАК", "ТАКОЕ", "ТАКАЯ"], answer: "ТАКОЕ" }
+    ];
+
+    function renderExercises() {
+        const list = document.getElementById('exercise-list');
+        list.innerHTML = '';
+        
+        exercises.forEach((ex, index) => {
+            const div = document.createElement('div');
+            div.className = 'sentence-item';
+            
+            const optionsHtml = ex.options.map(opt => `<option value="${opt}">${opt}</option>`).join('');
+            
+            div.innerHTML = `
+                <strong>${index + 1}.</strong> 
+                <span>${ex.text[0]}</span>
+                <select id="select-${ex.id}" onchange="validate(${ex.id})">
+                    <option value="" disabled selected>---</option>
+                    ${optionsHtml}
+                </select>
+                <span>${ex.text[1]}</span>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    window.validate = function(id) {
+        const select = document.getElementById(`select-${id}`);
+        const ex = exercises.find(e => e.id === id);
+        
+        if (select.value === ex.answer) {
+            select.className = 'correct';
+        } else {
+            select.className = 'wrong';
+        }
+    };
+
+    window.resetAll = function() {
+        exercises.forEach(ex => {
+            const select = document.getElementById(`select-${ex.id}`);
+            select.value = "";
+            select.className = "";
+        });
+    };
+
+    window.solveAll = function() {
+        exercises.forEach(ex => {
+            const select = document.getElementById(`select-${ex.id}`);
+            select.value = ex.answer;
+            select.className = 'correct';
+        });
+    };
+
+    // Start
+    renderExercises();
+</script>
+
+</body>
+</html>
