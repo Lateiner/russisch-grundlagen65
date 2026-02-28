@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch lernen: ТАК oder ТАКОЙ?</title>
+    <!-- Polyfill für Drag & Drop auf Touch-Geräten -->
+    <script src="https://cdn.jsdelivr.net/npm/drag-drop-touch@1.3.1/DragDropTouch.js"></script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+            --bg-color: #f8f9fa;
+            --text-color: #333;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 10px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 20px auto;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        h1, h2 {
+            color: var(--primary-color);
+            text-align: center;
+        }
+
+        .intro {
+            background: #eef2f7;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border-left: 6px solid var(--secondary-color);
+        }
+
+        .exercise-card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            transition: transform 0.2s;
+        }
+
+        .sentence {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .drop-zone {
+            min-width: 100px;
+            height: 35px;
+            border-bottom: 2px dashed var(--secondary-color);
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            background: #fdfdfd;
+            border-radius: 4px;
+            transition: all 0.3s;
+            padding: 0 10px;
+            font-weight: bold;
+        }
+
+        .drop-zone.correct {
+            border-bottom-style: solid;
+            border-color: var(--success-color);
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .drop-zone.wrong {
+            border-bottom-style: solid;
+            border-color: var(--error-color);
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .word-pool {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+            min-height: 40px;
+        }
+
+        .draggable {
+            background: var(--secondary-color);
+            color: white;
+            padding: 6px 15px;
+            border-radius: 20px;
+            cursor: grab;
+            user-select: none;
+            font-size: 0.95rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .draggable:active { cursor: grabbing; }
+        .draggable.hidden { display: none; }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+
+        .btn-reset { background: #95a5a6; color: white; }
+        .btn-solve { background: var(--primary-color); color: white; }
+        button:hover { opacity: 0.8; }
+
+        @media (max-width: 600px) {
+            .container { padding: 15px; }
+            .sentence { font-size: 1rem; }
+            .draggable { padding: 5px 12px; font-size: 0.85rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Russische Grammatik</h1>
+    <h2>Interaktives Training: ТАК vs. ТАКОЙ</h2>
+
+    <div class="intro">
+        <h3>Anleitung</h3>
+        <p>Ziehe das richtige russische Wort in die Lücke des Satzes. Du erhältst sofort eine Rückmeldung:</p>
+        <ul>
+            <li><strong>ТАК</strong>: Unveränderlich. Vor Adverbien und Kurzadjektiven.</li>
+            <li><strong>ТАКОЙ, ТАКАЯ, ТАКОЕ, ТАКИЕ</strong>: Veränderlich. Vor vollständigen Adjektiven.</li>
+        </ul>
+        <p><em>Tipp: Achte bei ТАКОЙ auf das Geschlecht, die Zahl und den Fall des Substantivs!</em></p>
+    </div>
+
+    <div id="exercise-list">
+        <!-- Aufgaben werden hier generiert -->
+    </div>
+</div>
+
+<script>
+    const exercises = [
+        { id: 1, text: ["Сегодня на улице", "холодно!"], pool: ["ТАК", "ТАКОЙ", "ТАКАЯ"], answer: "ТАК" },
+        { id: 2, text: ["Это", "красивый город."], pool: ["ТАК", "ТАКОЙ", "ТАКОЕ"], answer: "ТАКОЙ" },
+        { id: 3, text: ["Почему ты", "грустная?"], pool: ["ТАК", "ТАКАЯ", "ТАКИЕ"], answer: "ТАКАЯ" },
+        { id: 4, text: ["Мои студенты", "умные."], pool: ["ТАК", "ТАКИЕ", "ТАКОЕ"], answer: "ТАКИЕ" },
+        { id: 5, text: ["Это яблоко", "вкусное!"], pool: ["ТАК", "ТАКОЕ", "ТАКОЙ"], answer: "ТАКОЕ" },
+        { id: 6, text: ["Он", "быстро бегает."], pool: ["ТАК", "ТАКОЙ", "ТАКИЕ"], answer: "ТАК" },
+        { id: 7, text: ["Эта машина", "дорогая."], pool: ["ТАК", "ТАКАЯ", "ТАКИЕ"], answer: "ТАКАЯ" },
+        { id: 8, text: ["Фильм был", "интересен."], pool: ["ТАК", "ТАКОЙ", "ТАКОЕ"], answer: "ТАК" },
+        { id: 9, text: ["У него", "большой дом."], pool: ["ТАК", "ТАКОЙ", "ТАКАЯ"], answer: "ТАКОЙ" },
+        { id: 10, text: ["Она", "красива сегодня!"], pool: ["ТАК", "ТАКАЯ", "ТАКОЕ"], answer: "ТАК" },
+        // Fälle
+        { id: 11, text: ["Я не видел", "дорогого телефона."], pool: ["ТАКОЙ", "ТАКОГО", "ТАКИМ"], answer: "ТАКОГО" },
+        { id: 12, text: ["Мы подошли к", "старому зданию."], pool: ["ТАКОМУ", "ТАКОЙ", "ТАКИМ"], answer: "ТАКОМУ" },
+        { id: 13, text: ["Я вижу", "красивую девушку."], pool: ["ТАКАЯ", "ТАКУЮ", "ТАКОЙ"], answer: "ТАКУЮ" },
+        { id: 14, text: ["Он гордится", "умным сыном."], pool: ["ТАКИМ", "ТАКОГО", "ТАКОМУ"], answer: "ТАКИМ" },
+        { id: 15, text: ["Они говорят о", "трудном деле."], pool: ["ТАКОМ", "ТАКОЕ", "ТАКИХ"], answer: "ТАКОМ" },
+        { id: 16, text: ["У меня нет", "синих сумок."], pool: ["ТАКИЕ", "ТАКИХ", "ТАКИМИ"], answer: "ТАКИХ" },
+        { id: 17, text: ["Я рад", "хорошим новостям."], pool: ["ТАКИМ", "ТАКИЕ", "ТАКИХ"], answer: "ТАКИМ" },
+        { id: 18, text: ["Книга", "интересная."], pool: ["ТАК", "ТАКАЯ", "ТАКОЕ"], answer: "ТАКАЯ" },
+        { id: 19, text: ["Вы", "добры."], pool: ["ТАК", "ТАКИЕ", "ТАКАЯ"], answer: "ТАК" },
+        { id: 20, text: ["Это был", "сложный вопрос."], pool: ["ТАК", "ТАКОЙ", "ТАКОЕ"], answer: "ТАКОЙ" }
+    ];
+
+    const list = document.getElementById('exercise-list');
+
+    function init() {
+        exercises.forEach((ex, idx) => {
+            const card = document.createElement('div');
+            card.className = 'exercise-card';
+            card.innerHTML = `
+                <div class="sentence">
+                    <strong>${idx + 1}.</strong> 
+                    <span>${ex.text[0]}</span>
+                    <div class="drop-zone" id="dz-${ex.id}" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+                    <span>${ex.text[1]}</span>
+                </div>
+                <div class="word-pool" id="pool-${ex.id}">
+                    ${ex.pool.map(word => `<div class="draggable" draggable="true" ondragstart="drag(event)" id="word-${ex.id}-${word}">${word}</div>`).join('')}
+                </div>
+                <div class="btn-group">
+                    <button class="btn-reset" onclick="resetEx(${ex.id})">Zurücksetzen</button>
+                    <button class="btn-solve" onclick="solveEx(${ex.id})">Lösung anzeigen</button>
+                </div>
+            `;
+            list.appendChild(card);
+        });
+    }
+
+    window.allowDrop = (ev) => ev.preventDefault();
+
+    window.drag = (ev) => {
+        ev.dataTransfer.setData("text", ev.target.innerText);
+        ev.dataTransfer.setData("sourceId", ev.target.id);
+        ev.dataTransfer.setData("exId", ev.target.id.split('-')[1]);
+    };
+
+    window.drop = (ev) => {
+        ev.preventDefault();
+        const data = ev.dataTransfer.getData("text");
+        const sourceId = ev.dataTransfer.getData("sourceId");
+        const exId = parseInt(ev.dataTransfer.getData("exId"));
+        const dropZone = ev.target;
+
+        // Sicherstellen, dass nur in die richtige Zone der jeweiligen Aufgabe gedroppt wird
+        if (dropZone.id !== `dz-${exId}`) return;
+
+        const ex = exercises.find(e => e.id === exId);
+        
+        // Anzeige aktualisieren
+        dropZone.innerText = data;
+        
+        // Verstecke alle Wörter im Pool dieser Aufgabe
+        const pool = document.getElementById(`pool-${exId}`);
+        Array.from(pool.children).forEach(child => child.classList.add('hidden'));
+
+        // Feedback
+        if (data === ex.answer) {
+            dropZone.className = "drop-zone correct";
+        } else {
+            dropZone.className = "drop-zone wrong";
+        }
+    };
+
+    window.resetEx = (id) => {
+        const dz = document.getElementById(`dz-${id}`);
+        const pool = document.getElementById(`pool-${id}`);
+        dz.innerText = "";
+        dz.className = "drop-zone";
+        Array.from(pool.children).forEach(child => child.classList.remove('hidden'));
+    };
+
+    window.solveEx = (id) => {
+        const dz = document.getElementById(`dz-${id}`);
+        const pool = document.getElementById(`pool-${id}`);
+        const ex = exercises.find(e => e.id === id);
+        
+        dz.innerText = ex.answer;
+        dz.className = "drop-zone correct";
+        Array.from(pool.children).forEach(child => child.classList.add('hidden'));
+    };
+
+    init();
+</script>
+
+</body>
+</html>
